@@ -2,12 +2,12 @@ This is the game where players try to make tetris shapes with their bodies.
 
 This is also a complete rewrite of another application.
 
+===== Deployment ==========================================================
 
- *** Note that this application will only work on Windows 7. ***
+NOTE: that this application will only work on Windows 7.
 
-
- Here are the things you need to do to change the solution file for
- your own desktop.
+Here are the things you need to do to change the solution file for
+your own desktop.
 
 1. open the project property page
 
@@ -43,4 +43,11 @@ This is also a complete rewrite of another application.
     4.4 set "Precompiled Header" to 'Use (/Yu)'
     4.5 build the project again and then run it
     
-    
+===== Bugs and Todos ===================================================
+
+Bug 1: 
+if you run the application without connecting the Kinect, then after you 
+closed it, the tweetris thread will still be running. 
+
+Todo 1:
+add the twitpic code 
