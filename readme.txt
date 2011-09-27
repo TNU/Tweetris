@@ -1,3 +1,14 @@
+This is the game where players try to make tetris shapes with their bodies.
+
+This is also a complete rewrite of another application.
+
+
+ *** Note that this application will only work on Windows 7. ***
+
+
+ Here are the things you need to do to change the solution file for
+ your own desktop.
+
 1. open the project property page
 
     1.1 open one of the project files (e.g. tweetris.cpp)
