@@ -17,7 +17,7 @@
     3.1 expand the tree to the left to 
         Configuration Properties -> Linker -> General 
     3.2 change "Additional Library Directories" to the location of 
-        your Microsoft SDK library files 
+        your Microsoft SDK library files
         (e.g. 'Program Files\Microsoft Research KinectSDK\lib')
 
 4. Using Precompiled Headers
