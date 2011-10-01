@@ -119,7 +119,7 @@ bool Tweetris::checkPlayers() {
 	case 2: // player 2 wins
 		break;
 	case -1: // timed out
-		drawToSnapshot(1, shapeCopy);
+		report(1, shapeCopy);
 		shape = NULL;
 		break;
 	case 0:

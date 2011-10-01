@@ -69,6 +69,10 @@ Tweetris::Tweetris(HWND outputWindow)
 		  videoSize(D2D1::SizeU()),
 		  depthSize(D2D1::SizeU()),
 		  outputArea(D2D1::RectF()),
+		  snapshotScaleRatio(1.0),
+		  TWITPIC_UPLOAD_AND_POST_API_URL(TEXT("/api/uploadAndPost")),
+		  USERNAME("TweetrisTester"),
+		  PASSWORD("TestMyPatience"),
 
 		  allowedPlayTime(1 * 1000),
 		  grid(3, 4, 0.025f, 0.025f, 0.01f, 0),
@@ -81,8 +85,7 @@ Tweetris::Tweetris(HWND outputWindow)
 		  player2(D2D1::ColorF(D2D1::ColorF::Orange, 0.75),
 				  D2D1::ColorF(D2D1::ColorF::Red, 0.5),
 				  D2D1::ColorF(D2D1::ColorF::Yellow, 0.5)),
-		  matchLimit(0.5), outLimit(0.1), 
-		  console() {
+		  matchLimit(0.5), outLimit(0.1) {
 
 	srand(GetTickCount());
 
@@ -156,6 +159,11 @@ Tweetris::Tweetris(HWND outputWindow)
 		return;
 	}
 
+	// initialize Twitpic uploading functionality
+	InitializeCriticalSectionAndSpinCount(&uploadQueueAccess, 4000);  
+	uploadQueueEvent = CreateEvent(NULL, FALSE, FALSE, NULL); 
+	uploadThread = CreateThread(NULL, 0, uploadProc, this, 0, NULL);
+
 	SetWindowLongPtr(outputWindow, GWLP_USERDATA, (LONG_PTR) (this));
 	SetWindowLongPtr(outputWindow, GWLP_WNDPROC, (LONG_PTR) (Tweetris::mainProc));
 	
@@ -224,11 +232,24 @@ LRESULT CALLBACK Tweetris::mainProc(HWND hwnd, UINT message, WPARAM wParam, LPAR
 }
 
 Tweetris::~Tweetris() {
+	
+	EnterCriticalSection(&uploadQueueAccess);
+	uploadQueue.push(NULL);
+	LeaveCriticalSection(&uploadQueueAccess);
+	
+	SetEvent(uploadQueueEvent);
+
 	stopPainter();
 
 	uninitDebugDialog();
 
 	NuiShutdown();
+	
+	// stop the upload thread
+	WaitForSingleObject(uploadThread, INFINITE);
+	CloseHandle(uploadThread);
+	CloseHandle(uploadQueueEvent);
+	DeleteCriticalSection(&uploadQueueAccess);
 	
 	delete [] playerTally;
 	

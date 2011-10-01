@@ -92,6 +92,7 @@
     <ClCompile Include="painter.cpp" />
     <ClCompile Include="player.cpp" />
     <ClCompile Include="tweetris.cpp" />
+    <ClCompile Include="upload.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Tweetris.rc" />

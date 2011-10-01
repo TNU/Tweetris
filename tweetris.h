@@ -4,6 +4,11 @@
 #include "player.h"
 #include "grid.h"
 
+struct TwitpicData {
+	IStream * imageStream;
+	std::string message;
+};
+
 class Tweetris {
 
 public:	
@@ -67,6 +72,13 @@ private:
 	bool toolsLoaded;		// painting tools
 	bool loadTools();		
 	void unloadTools();
+	
+	// WIC declarations
+	IWICImagingFactory * snapshotMaker;
+	IWICBitmap * snapshotImage;
+	ID2D1RenderTarget * snapshot;
+	ID2D1Bitmap * snapshotBitmap;
+	float snapshotScaleRatio;
 
 	// Kinect interface declarations
 	HANDLE newVideoEvent, newDepthEvent, paintEvent, resizeEvent;
@@ -74,18 +86,27 @@ private:
 	HANDLE painterThread;
 	static DWORD CALLBACK painterProc(LPVOID tweetris);
 
-	// WIC declarations
-	IWICImagingFactory * snapshotMaker;
-	IWICBitmap * snapshotImage;
-	ID2D1RenderTarget * snapshot;
-	ID2D1Bitmap * snapshotBitmap;
-	void drawToSnapshot(int player, int * shape);
-
 	// painting functions
 	bool updateVideoBitmap();
 	Grid grid;
 	void drawGrid();
 	RGBQUAD depthToColor(USHORT depth, USHORT player);
+
+	// Twitpic upload declarations
+	LPCTSTR TWITPIC_UPLOAD_AND_POST_API_URL;
+	const char * USERNAME;
+	const char * PASSWORD;
+
+	std::queue<TwitpicData *> uploadQueue;
+	CRITICAL_SECTION uploadQueueAccess;
+	HANDLE uploadQueueEvent;
+	HANDLE uploadThread;
+	void report(int player, int * shape);
+	void tweet(IWICBitmapSource *, const std::string & message);
+	static DWORD WINAPI uploadProc(LPVOID tweetris);
+	bool upload(const TwitpicData * data);
+	std::string httpPostData(const std::basic_string<TCHAR> & header, 
+							 const std::string & data);
 
 	// game functions
 	int * shape;
@@ -98,6 +119,6 @@ private:
 	void clearTallies();
 	int findWinner(int * shapeCopy);
 	
-	CONST DWORD allowedPlayTime;
+	const DWORD allowedPlayTime;
 	DWORD playStartTime;
 };

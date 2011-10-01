@@ -93,6 +93,7 @@ bool Tweetris::loadTools() {
 }
 
 DWORD CALLBACK Tweetris::painterProc(LPVOID tweetris) {
+	
 	Tweetris * pThis = (Tweetris *) tweetris;
 
 	HANDLE events[] = {
