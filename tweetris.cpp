@@ -35,6 +35,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return false;
 	}
 
+	HRESULT result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+
 	// creates and binds the main window to tweetris video output
 	Tweetris tweetris(mainWindow);
 
@@ -57,6 +59,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		DispatchMessage(&message);
 	}
 
+	CoUninitialize();
+
 	return message.wParam;
 }
 
@@ -64,10 +68,10 @@ Tweetris::Tweetris(HWND outputWindow)
 		: outputWindow(outputWindow),
 		  videoSize(D2D1::SizeU()),
 		  depthSize(D2D1::SizeU()),
-		  outputRect(D2D1::RectF()),
+		  outputArea(D2D1::RectF()),
 
-		  allowedPlayTime(10 * 1000),
-		  grid(3, 4, 0.025f, 0.025f, 0.01f, 0, 0.5, 0.1),
+		  allowedPlayTime(1 * 1000),
+		  grid(3, 4, 0.025f, 0.025f, 0.01f, 0),
 		  ignoredColor(D2D1::ColorF(D2D1::ColorF::White, 0.25)),
 		  borderColor(D2D1::ColorF(D2D1::ColorF::Black, 0.75)),
 		  backgroundColor(D2D1::ColorF::Beige),
@@ -77,6 +81,7 @@ Tweetris::Tweetris(HWND outputWindow)
 		  player2(D2D1::ColorF(D2D1::ColorF::Orange, 0.75),
 				  D2D1::ColorF(D2D1::ColorF::Red, 0.5),
 				  D2D1::ColorF(D2D1::ColorF::Yellow, 0.5)),
+		  matchLimit(0.5), outLimit(0.1), 
 		  console() {
 
 	srand(GetTickCount());
@@ -84,8 +89,11 @@ Tweetris::Tweetris(HWND outputWindow)
 	toolsLoaded = false;
 	canvasMaker	= NULL;
 	canvas = NULL;
-	videoCanvas = NULL;
-	depthCanvas = NULL;
+
+	snapshotMaker = NULL;
+	snapshotImage = NULL;
+	snapshot = NULL;
+	snapshotBitmap = NULL;
 
 	debugging = false;
 	debugDialog	= NULL;
@@ -104,12 +112,54 @@ Tweetris::Tweetris(HWND outputWindow)
 	
 	shape = NULL;
 	playStartTime = 0;
+	
+	playerTally = new int [grid.numBoxes];
+	boxTally = new int * [grid.numBoxes];
+	for (int i = 0; i < grid.numBoxes; i++) {
+		boxTally[i] = new int [MAX_PLAYERS];
+	}
+
+	// initialize Kinect
+	newVideoEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	newDepthEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	paintEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+	resizeEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+
+	HRESULT result = NuiInitialize(
+		NUI_INITIALIZE_FLAG_USES_DEPTH_AND_PLAYER_INDEX |
+		NUI_INITIALIZE_FLAG_USES_SKELETON |
+		NUI_INITIALIZE_FLAG_USES_COLOR);
+	
+	if (FAILED(result)) {
+		return;
+	}
+
+	videoSize.width = 640;
+	videoSize.height = 480;
+	result = NuiImageStreamOpen(
+		NUI_IMAGE_TYPE_COLOR,
+		NUI_IMAGE_RESOLUTION_640x480,
+		0, 2, newVideoEvent, &videoStream);
+	
+	if (FAILED(result)) {
+		return;
+	}
+	
+	depthSize.width = 320;
+	depthSize.height = 240;
+	result = NuiImageStreamOpen(
+		NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX,
+		NUI_IMAGE_RESOLUTION_320x240,
+		0, 2, newDepthEvent, &depthStream);
+	
+	if (FAILED(result)) {
+		return;
+	}
 
 	SetWindowLongPtr(outputWindow, GWLP_USERDATA, (LONG_PTR) (this));
 	SetWindowLongPtr(outputWindow, GWLP_WNDPROC, (LONG_PTR) (Tweetris::mainProc));
-	if (! startPainter()) {
-		return;
-	}
+	
+	startPainter();
 }
 
 LRESULT CALLBACK Tweetris::mainProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -175,5 +225,15 @@ LRESULT CALLBACK Tweetris::mainProc(HWND hwnd, UINT message, WPARAM wParam, LPAR
 
 Tweetris::~Tweetris() {
 	stopPainter();
+
 	uninitDebugDialog();
+
+	NuiShutdown();
+	
+	delete [] playerTally;
+	
+	for (int i = 0; i < grid.numBoxes; i++) {
+		delete [] boxTally[i];
+	}
+	delete [] boxTally;
 }

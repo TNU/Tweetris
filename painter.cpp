@@ -2,57 +2,28 @@
 #include "tweetris.h"
 
 bool Tweetris::startPainter() {
-
-	HRESULT result;
-	newVideoEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-	newDepthEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-	paintEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-	resizeEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-
-	result = NuiInitialize(
-		NUI_INITIALIZE_FLAG_USES_DEPTH_AND_PLAYER_INDEX |
-		NUI_INITIALIZE_FLAG_USES_SKELETON |
-		NUI_INITIALIZE_FLAG_USES_COLOR);
+	running = false;
 	
-	if (FAILED(result)) {
-		return false;
+	HRESULT result  = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &canvasMaker);
+	
+	if (SUCCEEDED(result)) {
+		result = CoCreateInstance(CLSID_WICImagingFactory, NULL,
+								  CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, 
+								  (LPVOID*) &snapshotMaker);
+	}
+	
+	if (SUCCEEDED(result)) {
+		result = snapshotMaker->CreateBitmap(videoSize.width, videoSize.height,
+											GUID_WICPixelFormat32bppPBGRA, 
+											WICBitmapCacheOnLoad, &snapshotImage);
 	}
 
-	videoSize.width = 640;
-	videoSize.height = 480;
-	result = NuiImageStreamOpen(
-		NUI_IMAGE_TYPE_COLOR,
-		NUI_IMAGE_RESOLUTION_640x480,
-		0, 2, newVideoEvent, &videoStream);
-	
-	if (FAILED(result)) {
-		return false;
-	}
-	
-	depthSize.width = 320;
-	depthSize.height = 240;
-	result = NuiImageStreamOpen(
-		NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX,
-		NUI_IMAGE_RESOLUTION_320x240,
-		0, 2, newDepthEvent, &depthStream);
-	
-	if (FAILED(result)) {
-		return false;
-	}
-	
-	result = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &canvasMaker);
-	if (FAILED(result)) {
-		return false;
-	}
-	
-	if (! loadTools()) {
-		return false;
+	if (SUCCEEDED(result) && loadTools()) {
+		running = true;
+		painterThread = CreateThread(NULL, 0, painterProc, this, 0, NULL);
 	}	
-	
-	running = true;
 
-	painterThread = CreateThread(NULL, 0, painterProc, this, 0, NULL);
-	return true;
+	return running;
 }
 
 bool Tweetris::loadTools() {
@@ -68,8 +39,9 @@ bool Tweetris::loadTools() {
 		rect.right - rect.left,
 		rect.bottom - rect.top
 	);
-
+	
 	D2D1_RENDER_TARGET_PROPERTIES canvasProps = D2D1::RenderTargetProperties();
+	canvasProps.type = D2D1_RENDER_TARGET_TYPE_SOFTWARE;
 	canvasProps.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
 	canvasProps.pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
 
@@ -92,18 +64,25 @@ bool Tweetris::loadTools() {
 		result = canvas->CreateBitmap(videoSize, bitmapProps, &videoBitmap);
 	}
 
-	bitmapProps.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED   ;
+	bitmapProps.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
 	if (SUCCEEDED(result)) {
 		result = canvas->CreateBitmap(depthSize, bitmapProps, &depthBitmap);
 	}
 
-	if (debugging && !loadDebugTools()) {
-		result = E_FAIL;
+	canvasProps.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;
+	
+	if (SUCCEEDED(result)) {
+		result = canvasMaker->CreateWicBitmapRenderTarget(snapshotImage, canvasProps, &snapshot);
 	}
+	
+	if (SUCCEEDED(result)) {
+		result = snapshot->CreateSharedBitmap(__uuidof(ID2D1Bitmap *), (LPVOID) videoBitmap, 
+											  NULL, &snapshotBitmap);
+	} 
 
 	if (SUCCEEDED(result)) {
 		toolsLoaded = player1.loadBrushes(canvas) 
-							  && player2.loadBrushes(canvas);
+				   && player2.loadBrushes(canvas);
 	}
 
 	if (!toolsLoaded) {
@@ -129,7 +108,8 @@ DWORD CALLBACK Tweetris::painterProc(LPVOID tweetris) {
 
 		switch (index) {
 		case 0:
-			pThis->draw(true);
+			pThis->updateVideoBitmap();
+			pThis->draw();
 			ResetEvent(pThis->newVideoEvent);
 			break;
 		case 1:
@@ -137,7 +117,7 @@ DWORD CALLBACK Tweetris::painterProc(LPVOID tweetris) {
 			ResetEvent(pThis->newDepthEvent);
 			break;
 		case 2:
-			pThis->draw(false);
+			pThis->draw();
 			break;
 		case 3:
 			pThis->resize();
@@ -175,22 +155,18 @@ void Tweetris::resize() {
 	FLOAT newWidth = videoSize.width * fitRatio;
 	FLOAT newHeight = videoSize.height * fitRatio;
 	
-	outputRect.left = (newSize.width - newWidth) / 2;
-	outputRect.top = (newSize.height - newHeight) / 2;
-	outputRect.right = outputRect.left + newWidth;
-	outputRect.bottom = outputRect.top + newHeight;
+	outputArea.left = (newSize.width - newWidth) / 2;
+	outputArea.top = (newSize.height - newHeight) / 2;
+	outputArea.right = outputArea.left + newWidth;
+	outputArea.bottom = outputArea.top + newHeight;
 
-	grid.resizeTo(outputRect);
+	grid.resizeTo(outputArea);
 }
 
 void Tweetris::unloadTools() {
 	
 	player1.cleanBrushes();
 	player2.cleanBrushes();
-	
-	if (debugging) {
-		unloadDebugTools();
-	}
 
 	if (ignoredBrush != NULL) {
 		ignoredBrush->Release();
@@ -216,23 +192,42 @@ void Tweetris::unloadTools() {
 		canvas->Release();
 		canvas = NULL;
 	}
+
+	if (snapshot != NULL) {
+		snapshot->Release();
+		snapshot = NULL;
+	}
+
+	if (snapshotImage != NULL) {
+		snapshotImage->Release();
+		snapshotImage = NULL;
+	}
+	
+	if (snapshotBitmap != NULL) {
+		snapshotBitmap->Release();
+		snapshotBitmap = NULL;
+	}
 }
 
 void Tweetris::stopPainter() {
 	running = false;
-	
+
 	if (painterThread != NULL) {
 		WaitForSingleObject(painterThread, INFINITE);
 	}
 
 	unloadTools();
+
 	if (canvasMaker != NULL) {
 		canvasMaker->Release();
 		canvasMaker = NULL;
 	}
-	
-	NuiShutdown();
-	
+
+	if (snapshotMaker != NULL) {
+		snapshotMaker->Release();
+		snapshotMaker = NULL;
+	}
+
 	if (newVideoEvent != NULL) {
 		CloseHandle(newVideoEvent);
 		newVideoEvent = NULL;

@@ -17,6 +17,8 @@ public:
 	// when updateConsole is called
 	std::basic_stringstream<TCHAR>  console;
 	void updateConsole();
+	
+	static const int MAX_PLAYERS = 8;
 
 	Tweetris(HWND outputWindow);
 	~Tweetris();
@@ -36,15 +38,14 @@ private:
 	HANDLE frameCountingThread;
 	static DWORD CALLBACK frameCountingProc(LPVOID tweetris);
 
-	// painter setup declarations
+	// Direct2D painter setup declarations
 	HWND outputWindow;
-	D2D1_RECT_F outputRect;
+	D2D1_RECT_F outputArea;
 	void resize();			
 
 	ID2D1Factory * canvasMaker;
 	ID2D1HwndRenderTarget * canvas;
-	ID2D1HwndRenderTarget * depthCanvas;
-	ID2D1HwndRenderTarget * videoCanvas;
+
 	D2D1_SIZE_U videoSize;
 	ID2D1Bitmap * videoBitmap;
 	D2D1_SIZE_U depthSize;
@@ -59,21 +60,26 @@ private:
 	ID2D1SolidColorBrush * borderBrush;
 	D2D1::ColorF backgroundColor;
 	PlayerProfile player1, player2;
-	bool draw(bool newVideo);   
+	bool draw();   
 
 	// used to reload all direct2d device dependent
 	// resources on D2DERR_RECREATE_TARGET
 	bool toolsLoaded;		// painting tools
 	bool loadTools();		
 	void unloadTools();
-	bool loadDebugTools();
-	void unloadDebugTools();
 
 	// Kinect interface declarations
 	HANDLE newVideoEvent, newDepthEvent, paintEvent, resizeEvent;
 	HANDLE videoStream, depthStream;
 	HANDLE painterThread;
 	static DWORD CALLBACK painterProc(LPVOID tweetris);
+
+	// WIC declarations
+	IWICImagingFactory * snapshotMaker;
+	IWICBitmap * snapshotImage;
+	ID2D1RenderTarget * snapshot;
+	ID2D1Bitmap * snapshotBitmap;
+	void drawToSnapshot(int player, int * shape);
 
 	// painting functions
 	bool updateVideoBitmap();
@@ -82,9 +88,16 @@ private:
 	RGBQUAD depthToColor(USHORT depth, USHORT player);
 
 	// game functions
-	CONST DWORD allowedPlayTime;
 	int * shape;
-	DWORD playStartTime;
 	void selectShape(char shapeLabel = '0');
+	
+	float matchLimit, outLimit;
 	bool checkPlayers();
+	int * playerTally;
+	int ** boxTally;
+	void clearTallies();
+	int findWinner(int * shapeCopy);
+	
+	CONST DWORD allowedPlayTime;
+	DWORD playStartTime;
 };

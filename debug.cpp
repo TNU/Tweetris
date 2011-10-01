@@ -15,17 +15,9 @@ bool Tweetris::initDebugDialog(HINSTANCE hInstance, int nCmdShow) {
 		return false;
 	}
 
-	if (! loadDebugTools()) {
-		return false;
-	}
-
 	// displays the debugging dialog
 	ShowWindow(debugDialog,nCmdShow);
 	UpdateWindow(debugDialog);
-
-	if (! loadDebugTools()) {
-		return false;
-	}
 
 	frameCountingThread = CreateThread(NULL, 0, frameCountingProc, this, 0, NULL);
 	if (frameCountingThread == NULL) {
@@ -33,46 +25,6 @@ bool Tweetris::initDebugDialog(HINSTANCE hInstance, int nCmdShow) {
 	}
 
 	debugging = true;
-
-	return true;
-}
-
-bool Tweetris::loadDebugTools() {
-	D2D1_RENDER_TARGET_PROPERTIES canvasProps = D2D1::RenderTargetProperties();
-	canvasProps.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
-	canvasProps.pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
-
-	HRESULT result;
-	HWND videoView = GetDlgItem(debugDialog, IDC_VIDEO);
-	
-	RECT rect;
-	GetClientRect(videoView, &rect);
-		
-	D2D1_SIZE_U size = D2D1::SizeU(
-		rect.right - rect.left,
-		rect.bottom - rect.top
-	);
-
-	result = canvasMaker->CreateHwndRenderTarget(canvasProps,
-		D2D1::HwndRenderTargetProperties(videoView, size), &videoCanvas);
-
-	if (SUCCEEDED(result)) {
-		HWND depthView = GetDlgItem(debugDialog, IDC_DEPTH);
-
-		GetClientRect(depthView, &rect);
-		
-		size = D2D1::SizeU(
-			rect.right - rect.left,
-			rect.bottom - rect.top
-		);
-
-		result = canvasMaker->CreateHwndRenderTarget(canvasProps,
-			D2D1::HwndRenderTargetProperties(depthView, size), &depthCanvas);
-	}
-
-	if (FAILED(result)) {
-		unloadDebugTools();
-	}
 
 	return true;
 }
@@ -127,18 +79,6 @@ DWORD CALLBACK Tweetris::frameCountingProc(LPVOID tweetris) {
 }
 
 
-void Tweetris::unloadDebugTools() {
-	if (depthCanvas != NULL) {
-		depthCanvas->Release();
-		depthCanvas = NULL;
-	}
-
-	if (videoCanvas != NULL) {
-		videoCanvas->Release();
-		videoCanvas = NULL;
-	}
-}
-
 void Tweetris::uninitDebugDialog() {
 	debugging = false;
 	debugDialog = NULL;
@@ -149,6 +89,4 @@ void Tweetris::uninitDebugDialog() {
 		CloseHandle(frameCountingThread);
 		frameCountingThread = NULL;
 	}
-
-	unloadDebugTools();
 }

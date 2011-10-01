@@ -12,10 +12,7 @@ public:
 		  IGNORED, 
 		  P2_UNMATCHED, 
 		  P2_MATCHED, 
-		  P2_OUT} state;	// data
-
-	static const int MAX_NUM_PLAYER_INDICES = 8;
-	int fillByPlayer[MAX_NUM_PLAYER_INDICES]; // data
+		  P2_OUT} state;
 
 	GridBox();
 };
@@ -28,15 +25,12 @@ public:
 	float shiftDown;
 
 	GridBox * boxes;
-	float matchLimit, outLimit;
 
 	Grid(int numBoxWide, int numBoxHigh, 
-		 float left, float right, float centre, float shiftDown, 
-		 float matchLimit, float outLimit);
+		 float left, float right, float centre, float shiftDown);
 	void resizeTo(const D2D1_RECT_F & rect);
-	void resetData();
-	void mark(LONG x, LONG y, int player);
-	int analyzeData(int &player1, int &player2,	int * shape, float areaRatio);
+	int locateBox(LONG x, LONG y);
+	float getBoxArea();
 	~Grid();
 
 private:

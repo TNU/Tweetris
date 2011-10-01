@@ -1,7 +1,7 @@
 #include "precompiled.h"
 #include "tweetris.h"
 
-bool Tweetris::draw(bool newVideo) {
+bool Tweetris::draw() {
 	HRESULT result;
 
 	if (! toolsLoaded) {
@@ -13,45 +13,15 @@ bool Tweetris::draw(bool newVideo) {
 
 	canvas->BeginDraw();
 
-	if (newVideo) {
-		updateVideoBitmap();
-	}
-
 	canvas->Clear(backgroundColor);
-	canvas->DrawBitmap(videoBitmap, outputRect);
-	canvas->DrawBitmap(depthBitmap, outputRect);
+	canvas->DrawBitmap(videoBitmap, outputArea);
+	canvas->DrawBitmap(depthBitmap, outputArea);
 
 	if (shape != NULL) {
 		drawGrid();
 	}
 
 	result = canvas->EndDraw();
-	
-	if (debugging) {
-		D2D1_SIZE_F size;
-		D2D1_RECT_F rect;
-
-		videoCanvas->BeginDraw();
-		videoCanvas->Clear(backgroundColor);
-
-		size = videoCanvas->GetSize();
-		rect = D2D1::RectF(0, 0, size.width, size.height);
-
-		videoCanvas->DrawBitmap(videoBitmap, rect);
-
-		result = videoCanvas->EndDraw();
-
-		depthCanvas->BeginDraw();
-		depthCanvas->Clear(backgroundColor);
-
-		/*size = depthCanvas->GetSize();
-		rect = D2D1::RectF(0, 0, size.width, size.height);
-
-		depthCanvas->DrawBitmap(depthBitmap, rect);*/
-
-		result = depthCanvas->EndDraw();
-	}
-
 
 	if (result == D2DERR_RECREATE_TARGET) {
 		unloadTools();
@@ -170,4 +140,126 @@ void Tweetris::drawGrid() {
 	}
 	
 	return;
+}
+
+void Tweetris::drawToSnapshot(int player, int * shape) {
+	
+	IWICStream * snapshotStream = NULL;
+	IWICBitmapEncoder * snapshotEncoder = NULL;
+	IWICBitmapFrameEncode * snapshotFrame = NULL;
+	IWICBitmapClipper * snapshotClipper = NULL;
+
+	HRESULT result;
+	
+	snapshot->BeginDraw();
+	snapshot->Clear();
+	
+	D2D1_RECT_F snapshotArea = D2D1::RectF(videoSize.width, videoSize.height, 0, 0);
+	if (player != 0) {
+		for (int i = 0; i < grid.numBoxes; i++) {
+			if (shape[i] == player) {
+				if (snapshotArea.left > grid.boxes[i].rect.left) {
+					snapshotArea.left = grid.boxes[i].rect.left;
+				}
+
+				if (snapshotArea.top > grid.boxes[i].rect.top) {
+					snapshotArea.top = grid.boxes[i].rect.top;
+				}
+
+				if (snapshotArea.right < grid.boxes[i].rect.right) {
+					snapshotArea.right = grid.boxes[i].rect.right;
+				}
+
+				if (snapshotArea.bottom < grid.boxes[i].rect.bottom) {
+					snapshotArea.bottom = grid.boxes[i].rect.bottom;
+				}
+				
+				snapshot->DrawBitmap(snapshotBitmap, grid.boxes[i].rect, 1, 
+									 D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, 
+									 grid.boxes[i].rect);
+				snapshot->DrawRectangle(grid.boxes[i].rect, borderBrush);
+				if (player == 1) {
+					snapshot->FillRectangle(grid.boxes[i].rect, player1.matchedBrush);
+				} else if (player == 2) {
+					snapshot->FillRectangle(grid.boxes[i].rect, player2.matchedBrush);
+				}
+			}
+		}
+	} 
+	
+	result = snapshot->EndDraw();
+	
+	if (SUCCEEDED(result)) {
+		result = snapshotMaker->CreateStream(&snapshotStream);
+	}
+
+	if (SUCCEEDED(result)) {
+		result = snapshotMaker->CreateBitmapClipper(&snapshotClipper);
+	}
+
+	WICRect clipArea;
+	clipArea.X = (INT) floor(snapshotArea.left);
+	clipArea.Y = (INT) floor(snapshotArea.top);
+	clipArea.Width = (INT) ceil(snapshotArea.right - snapshotArea.left);
+	clipArea.Height = (INT) ceil(snapshotArea.bottom - snapshotArea.top);
+	if (SUCCEEDED(result)) {
+		result = snapshotClipper->Initialize(snapshotImage, &clipArea);
+	}
+
+	if (SUCCEEDED(result)) {
+		result = snapshotStream->InitializeFromFilename(TEXT("abc.png"), GENERIC_WRITE);
+	}
+	
+	if (SUCCEEDED(result)) {
+		result = snapshotMaker->CreateEncoder(GUID_ContainerFormatPng, NULL, &snapshotEncoder);
+	}
+	
+	if (SUCCEEDED(result)) {
+		result = snapshotEncoder->Initialize(snapshotStream, WICBitmapEncoderNoCache);
+	}
+	
+	if (SUCCEEDED(result)) {
+		result = snapshotEncoder->CreateNewFrame(&snapshotFrame, NULL);
+	}
+	
+	if (SUCCEEDED(result)) {
+		result = snapshotFrame->Initialize(NULL);
+	}
+	
+    if (SUCCEEDED(result))
+    {
+        result = snapshotFrame->SetSize(clipArea.Width, clipArea.Height);
+    }
+	
+	if (SUCCEEDED(result)) {
+		WICPixelFormatGUID sourceFormat = GUID_WICPixelFormatDontCare;
+		result = snapshotFrame->SetPixelFormat(&sourceFormat);
+	}
+
+	if (SUCCEEDED(result)) {
+		snapshotFrame->WriteSource(snapshotClipper, NULL);
+	}
+
+	snapshotFrame->Commit();
+	snapshotEncoder->Commit();
+	
+	if (snapshotClipper != NULL) {
+		snapshotClipper->Release();
+		snapshotClipper = NULL;
+	}
+	
+	if (snapshotFrame != NULL) {
+		snapshotFrame->Release();
+		snapshotFrame = NULL;
+	}
+	
+	if (snapshotEncoder != NULL) {
+		snapshotEncoder->Release();
+		snapshotEncoder = NULL;
+	}
+	
+	if (snapshotStream != NULL) {
+		snapshotStream->Release();
+		snapshotStream = NULL;
+	}
 }
