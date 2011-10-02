@@ -102,7 +102,7 @@ void Tweetris::report(int player, const Shape * shapeCopy) {
 	console << messageMaker.str().c_str() << TEXT("\r\n");
 	updateConsole();
 
-	//tweet(scaledSnapshot, messageMaker.str());
+	tweet(scaledSnapshot, messageMaker.str());
 
 	if (scaledSnapshot != NULL) {
 		scaledSnapshot->Release();
