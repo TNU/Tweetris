@@ -3,6 +3,7 @@
 #include "precompiled.h"
 #include "player.h"
 #include "grid.h"
+#include "shape.h"
 
 struct TwitpicData {
 	IStream * imageStream;
@@ -64,6 +65,7 @@ private:
 	D2D1::ColorF borderColor;
 	ID2D1SolidColorBrush * borderBrush;
 	D2D1::ColorF backgroundColor;
+	ID2D1SolidColorBrush * shapeBrush;
 	PlayerProfile player1, player2;
 	bool draw();   
 
@@ -101,7 +103,7 @@ private:
 	CRITICAL_SECTION uploadQueueAccess;
 	HANDLE uploadQueueEvent;
 	HANDLE uploadThread;
-	void report(int player, int * shape);
+	void report(int player, const Shape * shape);
 	void tweet(IWICBitmapSource *, const std::string & message);
 	static DWORD WINAPI uploadProc(LPVOID tweetris);
 	bool upload(const TwitpicData * data);
@@ -109,15 +111,15 @@ private:
 							 const std::string & data);
 
 	// game functions
-	int * shape;
-	void selectShape(char shapeLabel = '0');
+	const Shape * shape;
+	void selectShape(char command);
 	
 	float matchLimit, outLimit;
 	bool checkPlayers();
 	int * playerTally;
 	int ** boxTally;
 	void clearTallies();
-	int findWinner(int * shapeCopy);
+	int findWinner(const Shape * shapeCopy);
 	
 	const DWORD allowedPlayTime;
 	DWORD playStartTime;

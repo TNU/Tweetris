@@ -69,12 +69,12 @@ Tweetris::Tweetris(HWND outputWindow)
 		  videoSize(D2D1::SizeU()),
 		  depthSize(D2D1::SizeU()),
 		  outputArea(D2D1::RectF()),
-		  snapshotScaleRatio(1.0),
+		  snapshotScaleRatio(0.5),
 		  TWITPIC_UPLOAD_AND_POST_API_URL(TEXT("/api/uploadAndPost")),
 		  USERNAME("TweetrisTester"),
 		  PASSWORD("TestMyPatience"),
 
-		  allowedPlayTime(1 * 1000),
+		  allowedPlayTime(5 * 1000),
 		  grid(3, 4, 0.025f, 0.025f, 0.01f, 0),
 		  ignoredColor(D2D1::ColorF(D2D1::ColorF::White, 0.25)),
 		  borderColor(D2D1::ColorF(D2D1::ColorF::Black, 0.75)),
@@ -112,7 +112,8 @@ Tweetris::Tweetris(HWND outputWindow)
 
 	ignoredBrush = NULL;
 	borderBrush = NULL;
-	
+	shapeBrush = NULL;
+
 	shape = NULL;
 	playStartTime = 0;
 	
@@ -195,6 +196,7 @@ LRESULT CALLBACK Tweetris::mainProc(HWND hwnd, UINT message, WPARAM wParam, LPAR
 									  << (TCHAR) wParam << TEXT("\r\n");
 				}
 				pThis->updateConsole();
+				break;
 
 			case WM_SIZE:
 				SetEvent(pThis->paintEvent);

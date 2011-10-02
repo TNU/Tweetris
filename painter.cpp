@@ -55,6 +55,10 @@ bool Tweetris::loadTools() {
 	if (SUCCEEDED(result)) {
 		result = canvas->CreateSolidColorBrush(borderColor, &borderBrush);
 	}
+
+	if (SUCCEEDED(result)) {
+		result = canvas->CreateSolidColorBrush(D2D1::ColorF(0,0), &shapeBrush);
+	}
 	
 	D2D1_BITMAP_PROPERTIES bitmapProps = D2D1::BitmapProperties();
 	bitmapProps.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -177,6 +181,11 @@ void Tweetris::unloadTools() {
 	if (borderBrush != NULL) {
 		borderBrush->Release();
 		borderBrush = NULL;
+	}
+
+	if (shapeBrush != NULL) {
+		shapeBrush->Release();
+		shapeBrush = NULL;
 	}
 
 	if (videoBitmap != NULL) {

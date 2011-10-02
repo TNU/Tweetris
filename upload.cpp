@@ -1,7 +1,7 @@
 #include "precompiled.h"
 #include "tweetris.h"
 
-void Tweetris::report(int player, int * shape) {
+void Tweetris::report(int player, const Shape * shapeCopy) {
 
 	IWICBitmapClipper * clippedSnapshot = NULL;
 	IWICBitmapScaler * scaledSnapshot = NULL;
@@ -12,37 +12,41 @@ void Tweetris::report(int player, int * shape) {
 	snapshot->Clear();
 	
 	D2D1_RECT_F snapshotArea = D2D1::RectF(videoSize.width, videoSize.height, 0, 0);
-	if (player != 0) {
-		for (int i = 0; i < grid.numBoxes; i++) {
-			if (shape[i] == player) {
-				if (snapshotArea.left > grid.boxes[i].rect.left) {
-					snapshotArea.left = grid.boxes[i].rect.left;
-				}
+	for (int i = 0; i < grid.numBoxes; i++) {
+		if (player == 0 ? shapeCopy->boxes[i] == 1 :
+		    shapeCopy->boxes[i] == player) {
 
-				if (snapshotArea.top > grid.boxes[i].rect.top) {
-					snapshotArea.top = grid.boxes[i].rect.top;
-				}
-
-				if (snapshotArea.right < grid.boxes[i].rect.right) {
-					snapshotArea.right = grid.boxes[i].rect.right;
-				}
-
-				if (snapshotArea.bottom < grid.boxes[i].rect.bottom) {
-					snapshotArea.bottom = grid.boxes[i].rect.bottom;
-				}
-				
-				snapshot->DrawBitmap(snapshotBitmap, grid.boxes[i].rect, 1, 
-									 D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, 
-									 grid.boxes[i].rect);
-				snapshot->DrawRectangle(grid.boxes[i].rect, borderBrush);
-				if (player == 1) {
-					snapshot->FillRectangle(grid.boxes[i].rect, player1.matchedBrush);
-				} else if (player == 2) {
-					snapshot->FillRectangle(grid.boxes[i].rect, player2.matchedBrush);
-				}
+			if (snapshotArea.left > grid.boxes[i].rect.left) {
+				snapshotArea.left = grid.boxes[i].rect.left;
 			}
+
+			if (snapshotArea.top > grid.boxes[i].rect.top) {
+				snapshotArea.top = grid.boxes[i].rect.top;
+			}
+
+			if (snapshotArea.right < grid.boxes[i].rect.right) {
+				snapshotArea.right = grid.boxes[i].rect.right;
+			}
+
+			if (snapshotArea.bottom < grid.boxes[i].rect.bottom) {
+				snapshotArea.bottom = grid.boxes[i].rect.bottom;
+			}
+				
+			snapshot->DrawBitmap(snapshotBitmap, grid.boxes[i].rect, 1, 
+									D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, 
+									grid.boxes[i].rect);
+
+			shapeBrush->SetColor(shapeCopy->color);
+			snapshot->FillRectangle(grid.boxes[i].rect, shapeBrush);
 		}
-	} 
+	}
+
+	for (int i = 0; i < grid.numBoxes; i++) {
+		if (player == 0 ? shapeCopy->boxes[i] == 1 :
+		    shapeCopy->boxes[i] == player) {
+			snapshot->DrawRectangle(grid.boxes[i].rect, borderBrush);
+		}
+	}
 	
 	result = snapshot->EndDraw();
 	
@@ -70,16 +74,35 @@ void Tweetris::report(int player, int * shape) {
 								   WICBitmapInterpolationModeCubic);
 	}
 
-	std::string message;
-	if (player == 1) {
-		message = "Player 1 has won this round";
-	} else if (player == 2) {
-		message = "Player 2 has won this round";
-	} else {
-		message = "Nobody won this round";
-	}
+	std::stringstream messageMaker;
+	const int NAME_MAX_LEN = 50;
+	LPTSTR wname = new TCHAR[NAME_MAX_LEN];
+	char name[NAME_MAX_LEN];
 
-	tweet(scaledSnapshot, message);
+	int nameLen = 0;
+	if (player != 0) {
+		if (player == 1) {
+			nameLen = GetDlgItemText(debugDialog, IDC_P1_NAME, wname, NAME_MAX_LEN);
+		} else if (player == 2) {
+			nameLen = GetDlgItemText(debugDialog, IDC_P2_NAME, wname, NAME_MAX_LEN);
+		}
+
+		if (nameLen != 0) {
+			wcstombs(name, wname, NAME_MAX_LEN);
+			messageMaker << name;
+		} else {
+			messageMaker << "Player " << player;
+		}
+		messageMaker << " has made a " << shapeCopy->name << " shape.";
+	} else {
+		messageMaker << "Nobody managed to make a " 
+			         << shapeCopy->name << " shape.";
+	}
+	delete [] wname;
+	console << messageMaker.str().c_str() << TEXT("\r\n");
+	updateConsole();
+
+	//tweet(scaledSnapshot, messageMaker.str());
 
 	if (scaledSnapshot != NULL) {
 		scaledSnapshot->Release();
@@ -157,7 +180,6 @@ void Tweetris::tweet(IWICBitmapSource * image, const std::string & message) {
 		snapshotStream->Release();
 		snapshotStream = NULL;
 	}
-
 
 	TwitpicData * data = new TwitpicData();
 	data->imageStream = imageStream;

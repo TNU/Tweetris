@@ -81,7 +81,7 @@
     <ClInclude Include="player.h" />
     <ClInclude Include="precompiled.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="shapes.h" />
+    <ClInclude Include="shape.h" />
     <ClInclude Include="tweetris.h" />
   </ItemGroup>
   <ItemGroup>
@@ -91,6 +91,7 @@
     <ClCompile Include="grid.cpp" />
     <ClCompile Include="painter.cpp" />
     <ClCompile Include="player.cpp" />
+    <ClCompile Include="shape.cpp" />
     <ClCompile Include="tweetris.cpp" />
     <ClCompile Include="upload.cpp" />
   </ItemGroup>
