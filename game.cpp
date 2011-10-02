@@ -110,7 +110,7 @@ bool Tweetris::checkPlayers() {
 	int winner = findWinner(shapeCopy);
 	switch(winner) {
 	case 1: // player 1 wins
-		report(2, shapeCopy);
+		report(1, shapeCopy);
 		selectShape('r');
 		break;
 	case 2: // player 2 wins

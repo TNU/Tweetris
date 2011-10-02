@@ -74,7 +74,7 @@ Tweetris::Tweetris(HWND outputWindow)
 		  USERNAME("TweetrisTester"),
 		  PASSWORD("TestMyPatience"),
 
-		  allowedPlayTime(5 * 1000),
+		  allowedPlayTime(30 * 1000),
 		  grid(3, 4, 0.025f, 0.025f, 0.01f, 0),
 		  ignoredColor(D2D1::ColorF(D2D1::ColorF::White, 0.25)),
 		  borderColor(D2D1::ColorF(D2D1::ColorF::Black, 0.75)),

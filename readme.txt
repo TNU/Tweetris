@@ -48,6 +48,3 @@ your own desktop.
 Bug 1: 
 if you run the application without connecting the Kinect, then after you 
 closed it, the tweetris thread will still be running. 
-
-Todo 1:
-add the twitpic code 

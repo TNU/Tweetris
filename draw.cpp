@@ -15,7 +15,7 @@ bool Tweetris::draw() {
 
 	canvas->Clear(backgroundColor);
 	canvas->DrawBitmap(videoBitmap, outputArea);
-	canvas->DrawBitmap(depthBitmap, outputArea);
+	//canvas->DrawBitmap(depthBitmap, outputArea);
 
 	if (shape != NULL) {
 		drawGrid();
