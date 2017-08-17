@@ -31,34 +31,34 @@ NOTE: that this application will only work on Windows 7.
 Here are the things you need to do to change the solution file for
 your own desktop.
 
-1. open the project property page
-  1. open one of the project files (e.g. tweetris.cpp)
-  2. click on the "Project" menu in the menubar
-  3. click on "Tweetris Properties..."
+1.  open the project property page
+    1. open one of the project files (e.g. tweetris.cpp)
+    2. click on the "Project" menu in the menubar
+    3. click on "Tweetris Properties..."
 
-2. Additional Include Directories
-  1. expand the tree to the left to
-      Configuration Properties -> C/C++ -> General
-  2. change "Additional Include Directories" to the location of
-      your Microsoft SDK header files
-      (e.g. 'Program Files\Microsoft Research KinectSDK\inc')
+2.  Additional Include Directories
+    1.  expand the tree to the left to
+        Configuration Properties -> C/C++ -> General
+    2.  change "Additional Include Directories" to the location of
+        your Microsoft SDK header files
+        (e.g. 'Program Files\Microsoft Research KinectSDK\inc')
 
-3. Additional Library Directories
-  1. expand the tree to the left to
-      Configuration Properties -> Linker -> General
-  2. change "Additional Library Directories" to the location of
-      your Microsoft SDK library files
-      (e.g. 'Program Files\Microsoft Research KinectSDK\lib')
+3.  Additional Library Directories
+    1.  expand the tree to the left to
+        Configuration Properties -> Linker -> General
+    2.  change "Additional Library Directories" to the location of
+        your Microsoft SDK library files
+        (e.g. 'Program Files\Microsoft Research KinectSDK\lib')
 
-4. Using Precompiled Headers
-   on your first compilation, you may need to compile the precompiled
-   headers first
-  1. expand the tree to the left to
-      Configuration Properties -> C/C++ -> Precompiled Headers
-  2. set "Precompiled Header" to 'Create(/Yc)'
-  3. build the project
-  4. set "Precompiled Header" to 'Use (/Yu)'
-  5. build the project again and then run it
+4.  Using Precompiled Headers
+    on your first compilation, you may need to compile the precompiled
+    headers first
+    1.  expand the tree to the left to
+        Configuration Properties -> C/C++ -> Precompiled Headers
+    2.  set "Precompiled Header" to 'Create(/Yc)'
+    3.  build the project
+    4.  set "Precompiled Header" to 'Use (/Yu)'
+    5.  build the project again and then run it
 
 ## Bugs and Todos
 
