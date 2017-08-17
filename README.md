@@ -10,10 +10,10 @@ allow another player to play a tetris game with the cut-out tetris shapes.
 
 ## Screenshots
 
-![Two players trying to form the same S shape](screenshots/twoplayers.jpg)
+![Two players trying to form the same S shape](screenshots/twoplayers.jpg)<br>
 ▲ Two players trying to form the same S shape
 
-![Player coverage overlayed on top of video image.](screenshots/depth.jpg)
+![Player coverage overlayed on top of video image.](screenshots/depth.jpg)<br>
 ▲ Player coverage overlayed on top of video image.
 
 ## Technologies
